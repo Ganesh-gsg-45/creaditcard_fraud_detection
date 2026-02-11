@@ -1,0 +1,14 @@
+[2026-02-09 18:01:04,393 ] 26 root -INFO -\U0001f680 Starting model training using XGBoost
+[2026-02-09 18:01:45,219 ] 85 root -INFO -\u2705 Model training completed
+[2026-02-09 18:01:46,497 ] 95 root -INFO -\U0001f525 ROC-AUC Score: 0.999085930426074
+[2026-02-09 18:01:46,497 ] 96 root -INFO -\U0001f4ca Classification Report:
+              precision    recall  f1-score   support
+
+           0       1.00      1.00      1.00    257834
+           1       0.56      0.97      0.71      1501
+
+    accuracy                           1.00    259335
+   macro avg       0.78      0.98      0.85    259335
+weighted avg       1.00      1.00      1.00    259335
+
+[2026-02-09 18:01:46,516 ] 101 root -INFO -\U0001f4be Model saved at: artifacts\xgb_model.pkl

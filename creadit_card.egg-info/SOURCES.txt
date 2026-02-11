@@ -1,0 +1,6 @@
+setup.py
+creadit_card.egg-info/PKG-INFO
+creadit_card.egg-info/SOURCES.txt
+creadit_card.egg-info/dependency_links.txt
+creadit_card.egg-info/top_level.txt
+src/__init__.py
