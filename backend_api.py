@@ -8,9 +8,14 @@ from pydantic import BaseModel, Field, validator
 import joblib
 import pandas as pd
 import numpy as np
-from typing import Literal
+from typing import Literal, Optional, Dict, List, Any
 import os
 import logging
+from dotenv import load_dotenv
+from src.services.database_service import DatabaseService
+
+# Load environment variables
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -38,11 +43,12 @@ PREPROCESSOR_PATH = "artifacts/preprocessor.pkl"
 
 model = None
 preprocessor = None
+db_service: Optional[DatabaseService] = None
 
 @app.on_event("startup")
 async def load_artifacts():
-    """Load model and preprocessor on startup."""
-    global model, preprocessor
+    """Load model, preprocessor, and initialize database service on startup."""
+    global model, preprocessor, db_service
     try:
         if os.path.exists(MODEL_PATH):
             model = joblib.load(MODEL_PATH)
@@ -55,6 +61,21 @@ async def load_artifacts():
             logger.info(f"✅ Preprocessor loaded from {PREPROCESSOR_PATH}")
         else:
             logger.warning(f"⚠️  Preprocessor not found at {PREPROCESSOR_PATH}")
+        
+        # Initialize Supabase database service
+        supabase_url = os.getenv("SUPABASE_URL")
+        supabase_key = os.getenv("SUPABASE_KEY")
+        
+        if supabase_url and supabase_key:
+            try:
+                db_service = DatabaseService(supabase_url, supabase_key)
+                logger.info("✅ Database service initialized")
+            except Exception as e:
+                logger.error(f"❌ Failed to initialize database service: {e}")
+                db_service = None
+        else:
+            logger.warning("⚠️  Supabase credentials not found in environment variables")
+            
     except Exception as e:
         logger.error(f"❌ Error loading artifacts: {e}")
 
@@ -136,10 +157,12 @@ async def root():
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
+    db_healthy = db_service.health_check() if db_service else False
     return {
         "status": "healthy",
         "model_loaded": model is not None,
         "preprocessor_loaded": preprocessor is not None,
+        "database_connected": db_healthy,
         "model_path": MODEL_PATH,
         "preprocessor_path": PREPROCESSOR_PATH
     }
@@ -192,6 +215,50 @@ async def predict_fraud(transaction: TransactionRequest):
         
         logger.info(f"Prediction: {decision} (probability={fraud_prob:.4f})")
         
+        # Log transaction to database
+        if db_service:
+            try:
+                # Prepare transaction data for database
+                db_transaction = {
+                    'amt': transaction.amt,
+                    'category': transaction.category,
+                    'merchant': transaction.merchant,
+                    'state': transaction.state,
+                    'customer_age': transaction.customer_age,
+                    'fraud_probability': round(fraud_prob, 4),
+                    'fraud_prediction': fraud_pred,
+                    'decision': decision,
+                    'city_pop': transaction.city_pop,
+                    'lat': transaction.lat,
+                    'long': transaction.long,
+                    'merch_lat': transaction.merch_lat,
+                    'merch_long': transaction.merch_long,
+                    'distance_km': transaction.distance_km,
+                    'txn_time_gap': transaction.txn_time_gap,
+                    'txn_count_1h': transaction.txn_count_1h,
+                    'avg_amt_per_card': transaction.avg_amt_per_card,
+                    'amt_deviation': transaction.amt_deviation,
+                    'txn_hour': transaction.txn_hour,
+                    'is_weekend': transaction.is_weekend,
+                    'gender': transaction.gender,
+                    'cc_num': transaction.cc_num
+                }
+                
+                # Insert transaction
+                inserted_transaction = db_service.log_transaction(db_transaction)
+                
+                # If BLOCK or REVIEW, also flag the transaction
+                if decision in ["BLOCK", "REVIEW"] and inserted_transaction:
+                    risk_level = "CRITICAL" if decision == "BLOCK" else "HIGH"
+                    db_service.log_flagged_transaction(
+                        inserted_transaction['id'], 
+                        risk_level
+                    )
+                    
+            except Exception as e:
+                logger.error(f"❌ Database logging failed: {e}")
+                # Continue even if logging fails
+        
         return PredictionResponse(
             fraud_probability=round(fraud_prob, 4),
             fraud_prediction=fraud_pred,
@@ -205,6 +272,90 @@ async def predict_fraud(transaction: TransactionRequest):
     except Exception as e:
         logger.error(f"Prediction error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
+
+
+@app.get("/transactions/history")
+async def get_transaction_history(limit: int = 20):
+    """
+    Get recent transaction history.
+    
+    Args:
+        limit: Maximum number of transactions to retrieve (default: 20)
+    
+    Returns:
+        List of recent transactions
+    """
+    try:
+        if not db_service:
+            raise HTTPException(
+                status_code=503,
+                detail="Database service not available"
+            )
+        
+        transactions = db_service.get_recent_transactions(limit)
+        return {
+            "count": len(transactions),
+            "transactions": transactions
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get transaction history: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/transactions/stats")
+async def get_fraud_statistics():
+    """
+    Get fraud detection statistics.
+    
+    Returns:
+        Fraud statistics including total transactions, fraud rate, etc.
+    """
+    try:
+        if not db_service:
+            raise HTTPException(
+                status_code=503,
+                detail="Database service not available"
+            )
+        
+        stats = db_service.get_fraud_statistics()
+        return stats
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get fraud statistics: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/transactions/flagged")
+async def get_flagged_transactions(limit: int = 50):
+    """
+    Get flagged transactions (BLOCK/REVIEW decisions).
+    
+    Args:
+        limit: Maximum number of flagged transactions to retrieve (default: 50)
+    
+    Returns:
+        List of flagged transactions with details
+    """
+    try:
+        if not db_service:
+            raise HTTPException(
+                status_code=503,
+                detail="Database service not available"
+            )
+        
+        flagged = db_service.get_flagged_transactions(limit)
+        return {
+            "count": len(flagged),
+            "flagged_transactions": flagged
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get flagged transactions: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":

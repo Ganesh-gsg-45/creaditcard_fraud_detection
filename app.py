@@ -5,6 +5,7 @@ Beautiful, interactive UI for real-time fraud detection
 import streamlit as st
 import requests
 import json
+import pandas as pd
 from datetime import datetime
 
 # Page configuration
@@ -87,34 +88,43 @@ API_URL = "http://localhost:8000"
 st.markdown('<div class="main-header">🛡️ Credit Card Fraud Detection</div>', unsafe_allow_html=True)
 st.markdown("### Real-time transaction fraud analysis using Machine Learning")
 
-# Sidebar for examples and settings
-with st.sidebar:
-    st.header("⚙️ Settings")
-    
-    st.write("**Backend API:**")
-    st.code(API_URL, language="bash")
-    
-    # Health check
-    try:
-        response = requests.get(f"{API_URL}/health", timeout=2)
-        if response.status_code == 200:
-            data = response.json()
-            st.success("✅ API Connected")
-            if data.get("model_loaded"):
-                st.info("🤖 Model Ready")
-        else:
-            st.error("❌ API Error")
-    except:
-        st.error("❌ API Not Running")
-        st.warning("Start backend: `python backend_api.py`")
-    
-    st.markdown("---")
-    st.header("📋 Quick Examples")
-    
-    example_type = st.selectbox(
-        "Load Example",
-        ["Custom", "Normal Transaction", "Suspicious Transaction", "High-Risk Transaction"]
-    )
+# Create tabs
+tab1, tab2 = st.tabs(["🔍 Fraud Detection", "📊 Transaction History"])
+
+# ============================================
+# TAB 1: FRAUD DETECTION
+# ============================================
+with tab1:
+    # Sidebar for examples and settings
+    with st.sidebar:
+        st.header("⚙️ Settings")
+        
+        st.write("**Backend API:**")
+        st.code(API_URL, language="bash")
+        
+        # Health check
+        try:
+            response = requests.get(f"{API_URL}/health", timeout=2)
+            if response.status_code == 200:
+                data = response.json()
+                st.success("✅ API Connected")
+                if data.get("model_loaded"):
+                    st.info("🤖 Model Ready")
+                if data.get("database_connected"):
+                    st.success("💾 Database Connected")
+            else:
+                st.error("❌ API Error")
+        except:
+            st.error("❌ API Not Running")
+            st.warning("Start backend: `python backend_api.py`")
+        
+        st.markdown("---")
+        st.header("📋 Quick Examples")
+        
+        example_type = st.selectbox(
+            "Load Example",
+            ["Custom", "Normal Transaction", "Suspicious Transaction", "High-Risk Transaction"]
+        )
 
 # Example transaction templates
 examples = {
@@ -456,11 +466,160 @@ if st.button("🔍 Analyze Transaction", type="primary"):
     except Exception as e:
         st.error(f"❌ Error: {str(e)}")
 
+# ============================================
+# TAB 2: TRANSACTION HISTORY
+# ============================================
+with tab2:
+    st.header("📊 Transaction History & Analytics")
+    st.markdown("View recent transactions and fraud detection statistics")
+    
+    # Add refresh button
+    col_refresh, col_space = st.columns([1, 4])
+    with col_refresh:
+        if st.button("🔄 Refresh Data"):
+            st.rerun()
+    
+    try:
+        # Fetch statistics
+        stats_response = requests.get(f"{API_URL}/transactions/stats", timeout=5)
+        
+        if stats_response.status_code == 200:
+            stats = stats_response.json()
+            
+            # Display metrics
+            st.markdown("### 📈 Key Metrics")
+            metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
+            
+            with metric_col1:
+                st.metric(
+                    label="Total Transactions",
+                    value=stats.get('total_transactions', 0)
+                )
+            
+            with metric_col2:
+                fraud_rate = stats.get('fraud_rate_percent', 0.0)
+                st.metric(
+                    label="Fraud Rate",
+                    value=f"{fraud_rate:.2f}%"
+                )
+            
+            with metric_col3:
+                st.metric(
+                    label="Fraudulent",
+                    value=stats.get('fraud_count', 0),
+                    delta=None
+                )
+            
+            with metric_col4:
+                st.metric(
+                    label="Blocked",
+                    value=stats.get('blocked_count', 0),
+                    delta=None
+                )
+            
+            # Decision breakdown
+            st.markdown("### 🎯 Decision Breakdown")
+            dec_col1, dec_col2, dec_col3 = st.columns(3)
+            
+            with dec_col1:
+                st.success(f"**ALLOW**: {stats.get('allowed_count', 0)}")
+            
+            with dec_col2:
+                st.warning(f"**REVIEW**: {stats.get('review_count', 0)}")
+            
+            with dec_col3:
+                st.error(f"**BLOCK**: {stats.get('blocked_count', 0)}")
+            
+            st.markdown("---")
+            
+        else:
+            st.warning("⚠️ Could not fetch statistics")
+    
+    except Exception as e:
+        st.error(f"❌ Error fetching statistics: {e}")
+    
+    # Fetch transaction history
+    st.markdown("### 📋 Recent Transactions")
+    
+    try:
+        history_response = requests.get(f"{API_URL}/transactions/history?limit=20", timeout=5)
+        
+        if history_response.status_code == 200:
+            history_data = history_response.json()
+            transactions = history_data.get('transactions', [])
+            
+            if transactions:
+                # Convert to DataFrame for better display
+                df = pd.DataFrame(transactions)
+                
+                # Select and reorder columns for display
+                display_columns = [
+                    'created_at', 'amt', 'merchant', 'category', 
+                    'state', 'customer_age', 'fraud_probability', 
+                    'decision'
+                ]
+                
+                # Filter to only existing columns
+                display_columns = [col for col in display_columns if col in df.columns]
+                df_display = df[display_columns].copy()
+                
+                # Format date
+                if 'created_at' in df_display.columns:
+                    df_display['created_at'] = pd.to_datetime(df_display['created_at']).dt.strftime('%Y-%m-%d %H:%M:%S')
+                
+                # Format fraud probability as percentage
+                if 'fraud_probability' in df_display.columns:
+                    df_display['fraud_probability'] = df_display['fraud_probability'].apply(lambda x: f"{x*100:.2f}%")
+                
+                # Format amount
+                if 'amt' in df_display.columns:
+                    df_display['amt'] = df_display['amt'].apply(lambda x: f"${x:.2f}")
+                
+                # Rename columns for better readability
+                df_display.columns = ['Time', 'Amount', 'Merchant', 'Category', 
+                                     'State', 'Age', 'Fraud Prob.', 'Decision'][:len(df_display.columns)]
+                
+                # Display table
+                st.dataframe(
+                    df_display,
+                    use_container_width=True,
+                    hide_index=True
+                )
+                
+                # Fraud Rate Chart
+                st.markdown("### 📊 Fraud Rate Trend")
+                
+                # Create fraud rate data
+                if len(df) > 0:
+                    # Group by decision
+                    decision_counts = df['decision'].value_counts()
+                    
+                    # Create bar chart
+                    chart_data = pd.DataFrame({
+                        'Decision': decision_counts.index,
+                        'Count': decision_counts.values
+                    })
+                    
+                    st.bar_chart(chart_data.set_index('Decision'))
+                
+            else:
+                st.info("📭 No transactions yet. Submit a transaction to see it here!")
+        
+        else:
+            st.warning("⚠️ Could not fetch transaction history")
+    
+    except requests.exceptions.ConnectionError:
+        st.error("❌ Cannot connect to API. Make sure the backend is running:")
+        st.code("python backend_api.py", language="bash")
+    
+    except Exception as e:
+        st.error(f"❌ Error fetching transaction history: {e}")
+
 # Footer
 st.markdown("---")
 st.markdown("""
 <div style='text-align: center; color: #666; padding: 2rem 0;'>
     <p>🛡️ Credit Card Fraud Detection System v2.0</p>
-    <p>Powered by XGBoost ML • FastAPI Backend • Streamlit Frontend</p>
+    <p>Powered by XGBoost ML • FastAPI Backend • Streamlit Frontend • Supabase Cloud Database</p>
 </div>
 """, unsafe_allow_html=True)
