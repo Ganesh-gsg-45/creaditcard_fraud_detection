@@ -1,14 +1,10 @@
-"""
-Streamlit Frontend for Credit Card Fraud Detection System
-Beautiful, interactive UI for real-time fraud detection
-"""
+
 import streamlit as st
 import requests
 import json
 import pandas as pd
 from datetime import datetime
 
-# Page configuration
 st.set_page_config(
     page_title="Fraud Detection System",
     page_icon="🛡️",
@@ -196,10 +192,11 @@ examples = {
 # Load example if selected
 default_values = examples.get(example_type, {})
 
-# Main form
+# Main form - Simplified with only essential features
 st.markdown("## 💳 Transaction Details")
+st.info("ℹ️ **Simplified Form** - Showing only essential fields. Advanced features are auto-calculated with smart defaults.")
 
-col1, col2, col3 = st.columns(3)
+col1, col2 = st.columns(2)
 
 with col1:
     st.subheader("💰 Transaction Info")
@@ -225,19 +222,12 @@ with col1:
         help="Merchant name"
     )
     
-    txn_hour = st.slider(
-        "Transaction Hour",
-        0, 23,
-        value=int(default_values.get("txn_hour", 14)),
-        help="Hour of the day (0-23)"
-    )
-    
-    is_weekend = st.selectbox(
-        "Weekend?",
-        [0, 1],
-        format_func=lambda x: "Yes" if x == 1 else "No",
-        index=int(default_values.get("is_weekend", 0))
-    )
+    state = st.text_input(
+        "State Code",
+        value=default_values.get("state", "NY"),
+        max_chars=2,
+        help="2-letter US state code"
+    ).upper()
 
 with col2:
     st.subheader("👤 Customer Info")
@@ -254,71 +244,31 @@ with col2:
         index=0 if default_values.get("gender", "M") == "M" else 1
     )
     
-    state = st.text_input(
-        "State Code",
-        value=default_values.get("state", "NY"),
-        max_chars=2,
-        help="2-letter US state code"
-    ).upper()
-    
-    city_pop = st.number_input(
-        "City Population",
-        min_value=0,
-        value=int(default_values.get("city_pop", 50000)),
-        step=1000,
-        help="Population of the city"
+    txn_hour = st.slider(
+        "Transaction Hour",
+        0, 23,
+        value=int(default_values.get("txn_hour", 14)),
+        help="Hour of the day (0-23)"
     )
     
-    cc_num = st.text_input(
-        "Card Number (Tokenized)",
-        value=default_values.get("cc_num", "card_12345"),
-        help="Hashed or tokenized card number"
+    is_weekend = st.selectbox(
+        "Weekend?",
+        [0, 1],
+        format_func=lambda x: "Yes" if x == 1 else "No",
+        index=int(default_values.get("is_weekend", 0))
     )
 
-with col3:
-    st.subheader("📍 Location & Behavior")
-    lat = st.number_input(
-        "Customer Latitude",
-        min_value=-90.0,
-        max_value=90.0,
-        value=float(default_values.get("lat", 40.7128)),
-        format="%.4f"
-    )
-    
-    long = st.number_input(
-        "Customer Longitude",
-        min_value=-180.0,
-        max_value=180.0,
-        value=float(default_values.get("long", -74.0060)),
-        format="%.4f"
-    )
-    
-    merch_lat = st.number_input(
-        "Merchant Latitude",
-        min_value=-90.0,
-        max_value=90.0,
-        value=float(default_values.get("merch_lat", 40.7500)),
-        format="%.4f"
-    )
-    
-    merch_long = st.number_input(
-        "Merchant Longitude",
-        min_value=-180.0,
-        max_value=180.0,
-        value=float(default_values.get("merch_long", -73.9900)),
-        format="%.4f"
-    )
-    
-    distance_km = st.number_input(
-        "Distance to Merchant (km)",
-        min_value=0.0,
-        value=float(default_values.get("distance_km", 5.0)),
-        step=0.1,
-        help="Distance from customer to merchant"
-    )
+# Auto-filled values with smart defaults (hidden from user)
+city_pop = default_values.get("city_pop", 50000)
+lat = default_values.get("lat", 40.7128)
+long = default_values.get("long", -74.0060)
+merch_lat = default_values.get("merch_lat", 40.7500)
+merch_long = default_values.get("merch_long", -73.9900)
+distance_km = default_values.get("distance_km", 5.0)
+cc_num = default_values.get("cc_num", f"card_{customer_age}{txn_hour}")
 
 # Advanced features (collapsible)
-with st.expander("🔧 Advanced Features"):
+with st.expander(" Advanced Features"):
     col_a, col_b = st.columns(2)
     
     with col_a:
