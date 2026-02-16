@@ -1,77 +1,76 @@
-# Python
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
+
+# C extensions
 *.so
-.Python
-env/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+*.egg
+pip-wheel-metadata/
+
+# Virtual environments
 venv/
 ENV/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# IDEs
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# Environment variables
+env/
+.venv/
+venv.bak/
 .env
-*.env
+.env.*.local
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+.tox/
+.nox/
+.coverage
+.coverage.*
+.pytest_cache/
+htmlcov/
 
 # Jupyter Notebook
 .ipynb_checkpoints
 
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
+# Pyright / mypy
+.mypy_cache/
 
-# Logs
-logs/
-*.log
+# IDEs and editors
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
 
-# Data files (IMPORTANT!)
-data/
-*.csv
-*.xlsx
-*.json
-
-# Model artifacts (IMPORTANT!)
-artifacts/
-*.pkl
-*.h5
-*.pt
-*.pth
-*.onnx
-*.joblib
-
-# Large files
-*.zip
-*.tar.gz
-*.rar
-
-# OS
+# OS files
 .DS_Store
 Thumbs.db
+desktop.ini
 
-# Legacy backup
-legacy_backup/
+# Logs and databases
+logs/
+*.log
+*.sqlite3
+*.db
 
-# Streamlit cache
-.streamlit/
+# Data and artifacts (do not track large/raw/generated data)
+data/
+artifacts/
+raw.csv
+train.csv
+test.csv
+*.npy
+
+# Build artifacts
+build/
+dist/
+eggs/
+
+# Other
+.pytest_cache/
+.ropeproject/
+.cache/

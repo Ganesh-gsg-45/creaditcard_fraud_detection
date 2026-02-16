@@ -2,49 +2,15 @@ import sys
 import pandas as pd
 import joblib
 from src.exception import customException
-from src.logger import logging
 
 
-class PredictPipeline:
-    """Production-ready prediction pipeline with validation and logging."""
-    
+class predictpipeline:
     def __init__(self):
         pass
 
-    def _validate_input(self, features: pd.DataFrame) -> None:
-        """Validate input DataFrame has required features."""
-        required_features = [
-            'amt', 'city_pop', 'lat', 'long', 'merch_lat', 'merch_long',
-            'distance_km', 'txn_time_gap', 'txn_count_1h',
-            'avg_amt_per_card', 'amt_deviation', 'customer_age',
-            'txn_hour', 'is_weekend', 'gender', 'state', 'category',
-            'merchant', 'cc_num'
-        ]
-        
-        missing_features = set(required_features) - set(features.columns)
-        if missing_features:
-            raise ValueError(f"Missing required features: {missing_features}")
-        
-        # Check for null values
-        null_cols = features.columns[features.isnull().any()].tolist()
-        if null_cols:
-            logging.warning(f"Input contains null values in columns: {null_cols}")
-            raise ValueError(f"Input contains null values in columns: {null_cols}")
-        
-        logging.info("Input validation passed")
-
     def predict(self, features: pd.DataFrame):
         try:
-            logging.info("Starting prediction pipeline")
-            
-            # Ensure input is a DataFrame
-            if not isinstance(features, pd.DataFrame):
-                features = pd.DataFrame(features)
-            
-            # Validate input
-            self._validate_input(features)
-            
-            # Load model
+            # prefer the model we saved during training; fall back to model.pkl if present
             model_candidates = ["artifacts/xgb_model.pkl", "artifacts/model.pkl"]
             preprocessor_candidates = ["artifacts/preprocessor.pkl"]
 
@@ -53,7 +19,6 @@ class PredictPipeline:
                 try:
                     model = joblib.load(p)
                     model_path = p
-                    logging.info(f"Model loaded from: {model_path}")
                     break
                 except Exception:
                     continue
@@ -65,18 +30,20 @@ class PredictPipeline:
                 try:
                     preprocessor = joblib.load(p)
                     preprocessor_path = p
-                    logging.info(f"Preprocessor loaded from: {preprocessor_path}")
                     break
                 except Exception:
                     continue
             if preprocessor is None:
                 raise FileNotFoundError("No preprocessor file found in artifacts (tried {}).".format(preprocessor_candidates))
 
-            # Transform and predict
-            data_scaled = preprocessor.transform(features)
-            logging.info(f"Data transformed, shape: {data_scaled.shape}")
+            # Ensure input is a DataFrame
+            if not isinstance(features, pd.DataFrame):
+                features = pd.DataFrame(features)
 
-            # Get predicted probability for positive class (1)
+            # transform and predict
+            data_scaled = preprocessor.transform(features)
+
+            # get predicted probability for positive class (1)
             prob = None
             if hasattr(model, 'predict_proba'):
                 prob = model.predict_proba(data_scaled)[:, 1]
@@ -91,8 +58,6 @@ class PredictPipeline:
                 prob = preds.astype(float)
 
             preds = (prob >= 0.5).astype(int)
-            
-            logging.info(f"Prediction complete. Fraud predictions: {preds.sum()} out of {len(preds)}")
 
             # Build result DataFrame
             result = pd.DataFrame({
@@ -104,7 +69,6 @@ class PredictPipeline:
 
             return result
         except Exception as e:
-            logging.error(f"Prediction error: {str(e)}")
             raise customException(e, sys)
 
 
@@ -207,7 +171,7 @@ if __name__ == "__main__":
             cc_num='card_1',
         )
         df = example.get_data_as_data_frame()
-        preds = PredictPipeline().predict(df)
+        preds = predictpipeline().predict(df)
         print('Prediction:', preds)
     except Exception as e:
         msg = str(e)

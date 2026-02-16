@@ -1,121 +1,74 @@
 # 🛡️ Credit Card Fraud Detection System
 
-A **production-ready** fraud detection application with FastAPI backend and Streamlit frontend, featuring real-time ML-powered fraud analysis with 3-tier decision logic.
+A full-stack Machine Learning application for real-time credit card fraud detection with intelligent risk assessment.
 
----
+## ✨ Features
 
-## 🌟 Features
-
-- ⚡ **FastAPI Backend** - High-performance REST API with automatic documentation
-- 🎨 **Streamlit Frontend** - Beautiful, interactive web interface
-- 🤖 **XGBoost ML Model** - Trained on real credit card transaction data
-- 🎯 **3-Tier Decision Logic** - BLOCK / REVIEW / ALLOW based on risk thresholds
-- ✅ **Pydantic Validation** - Automatic request validation
-- 📊 **Real-Time Analysis** - Instant fraud probability calculation
-- 🔒 **Production Ready** - CORS, error handling, logging included
-
----
+- **Real-time Fraud Detection** - Instant transaction analysis using XGBoost ML model
+- **3-Tier Decision System** - ALLOW, REVIEW, or BLOCK transactions based on risk
+- **Interactive Web Interface** - Beautiful Streamlit dashboard with example templates
+- **REST API** - FastAPI backend with automatic documentation
+- **Transaction History** - View analytics and fraud statistics (with Supabase integration)
+- **Advanced ML Features** - Transaction velocity, spending patterns, distance analysis
 
 ## 🚀 Quick Start
 
-### 1. Install Dependencies
+### Prerequisites
+- Python 3.8 or higher
+- pip package manager
+
+### Installation
+
+1. **Install dependencies**:
 ```bash
 pip install -r requirements.txt
-pip install -e .
 ```
 
-### 2. Train the Model (if not already done)
+2. **Train the model** (first time only):
 ```bash
 python src/components/data_ingestion.py
 python src/components/data_transformation.py
 python src/components/model_training.py
 ```
 
-### 3. Run the Application
+3. **Run the application**:
 
-#### Terminal 1: Start Backend
+**Terminal 1 - Backend API**:
 ```bash
 python backend_api.py
 ```
-**Backend runs on:** http://localhost:8000
 
-#### Terminal 2: Start Frontend
+**Terminal 2 - Frontend**:
 ```bash
-streamlit run frontend_app.py
-```
-**Frontend opens at:** http://localhost:8501
-
----
-
-## 🎯 How to Use
-
-1. **Open** http://localhost:8501 in your browser
-2. **Select** an example transaction from sidebar OR enter custom data
-3. **Fill in** transaction details:
-   - 💰 Transaction info (amount, category, merchant)
-   - 👤 Customer info (age, gender, location)
-   - 📍 Location & behavior (distance, time patterns)
-4. **Click** "Analyze Transaction"
-5. **View** results with color-coded decision
-
-### Decision Logic
-
-| Fraud Probability | Decision | Action |
-|------------------|----------|---------|
-| **≥ 0.8** | 🚫 **BLOCK** | Transaction rejected |
-| **0.5 - 0.8** | ⚠️ **REVIEW** | Manual review required |
-| **< 0.5** | ✅ **ALLOW** | Transaction approved |
-
----
-
-## 📁 Project Structure
-
-```
-creadit-card-fraud/
-├── backend_api.py              # FastAPI backend ⭐ NEW
-├── frontend_app.py             # Streamlit frontend ⭐ NEW
-├── requirements.txt            # All dependencies
-├── setup.py                    # Package setup
-├── README.md                   # This file
-├── artifacts/                  # Model artifacts
-│   ├── xgb_model.pkl          # Trained XGBoost model
-│   ├── preprocessor.pkl       # Data preprocessor
-│   └── model_metrics.json     # Evaluation metrics
-├── src/
-│   ├── config.py              # Configuration
-│   ├── logger.py              # Logging utilities
-│   ├── exception.py           # Exception handling
-│   ├── components/
-│   │   ├── data_ingestion.py
-│   │   ├── data_transformation.py
-│   │   └── model_training.py
-│   └── pipeline/
-│       └── predict_pipeline.py
-├── tests/                      # Unit tests
-├── examples/                   # Usage examples
-└── legacy_backup/              # Old Flask app (archived)
+streamlit run app.py
 ```
 
----
+4. **Open your browser** to `http://localhost:8501`
 
-## 🔧 API Documentation
+## 📖 How to Use
 
-### Endpoints
+### Web Interface
+1. Select a transaction example (Normal, Suspicious, or High-Risk)
+2. Adjust transaction details if needed
+3. Click "Analyze Transaction"
+4. View the fraud risk assessment and decision
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/` | GET | API information |
-| `/health` | GET | Health check + model status |
-| `/predict` | POST | Fraud prediction |
-| `/docs` | GET | Interactive API docs (Swagger UI) |
+### API Usage
+Access the API documentation at `http://localhost:8000/docs`
 
-### Example API Call
-
+**Example Request**:
 ```bash
-curl -X POST http://localhost:8000/predict \
+curl -X POST "http://localhost:8000/predict" \
   -H "Content-Type: application/json" \
   -d '{
     "amt": 120.50,
+    "category": "grocery_pos",
+    "merchant": "Whole Foods",
+    "customer_age": 35,
+    "txn_hour": 14,
+    "is_weekend": 0,
+    "gender": "M",
+    "state": "NY",
     "city_pop": 50000,
     "lat": 40.7128,
     "long": -74.0060,
@@ -126,153 +79,62 @@ curl -X POST http://localhost:8000/predict \
     "txn_count_1h": 2,
     "avg_amt_per_card": 100.0,
     "amt_deviation": 1.2,
-    "customer_age": 35,
-    "txn_hour": 14,
-    "is_weekend": 0,
-    "gender": "M",
-    "state": "NY",
-    "category": "grocery_pos",
-    "merchant": "Whole Foods",
     "cc_num": "card_12345"
   }'
 ```
 
-**Response:**
-```json
-{
-  "fraud_probability": 0.1234,
-  "fraud_prediction": 0,
-  "decision": "ALLOW",
-  "confidence": "high",
-  "message": "✅ Transaction ALLOWED - Low fraud risk"
-}
+## 📁 Project Structure
+
 ```
-
----
-
-## 📊 Model Performance
-
-Check `artifacts/model_metrics.json` for detailed metrics:
-- **ROC-AUC Score**: Overall model performance
-- **Precision**: Accuracy of fraud predictions
-- **Recall**: Percentage of fraud caught
-- **F1-Score**: Harmonic mean of precision & recall
-- **Confusion Matrix**: Detailed breakdown
-
----
+├── src/
+│   ├── components/          # Data processing & model training
+│   ├── pipeline/            # Prediction pipeline
+│   └── services/            # Database service
+├── tests/                   # Test suite
+├── artifacts/               # Trained models
+├── app.py                  # Streamlit frontend
+├── backend_api.py          # FastAPI backend
+└── requirements.txt        # Dependencies
+```
 
 ## 🧪 Testing
 
-### Run Unit Tests
 ```bash
-pytest tests/ -v
+pytest                      # Run all tests
+pytest --cov=src           # Run with coverage
 ```
 
-### Test Individual Components
-```bash
-# Test prediction pipeline
-python examples/predict_example.py
+## 🔧 Technology Stack
 
-# Test data transformation
-python src/components/data_transformation.py
-
-# Test model training
-python src/components/model_training.py
-```
-
----
-
-## 🎨 Example Transactions
-
-The app includes pre-loaded examples:
-
-1. **Normal Transaction** - Grocery purchase at 2 PM
-   - Expected: ALLOW (probability < 0.2)
-
-2. **Suspicious Transaction** - Cross-country late-night purchase
-   - Expected: REVIEW (probability 0.5-0.8)
-
-3. **High-Risk Transaction** - $5K at 3 AM with many recent transactions
-   - Expected: BLOCK (probability ≥ 0.8)
-
----
-
-## 🔒 Security & Privacy
-
-> **⚠️ Important for Production:**
-> - Hash or tokenize credit card numbers
-> - Implement proper authentication
-> - Use HTTPS in production
-> - Set specific CORS origins
-> - Add rate limiting
-> - Follow PCI DSS compliance
-
----
-
-## 📈 Technology Stack
-
-- **Backend**: FastAPI + Uvicorn
+- **Machine Learning**: XGBoost, Scikit-learn
+- **Backend**: FastAPI, Uvicorn
 - **Frontend**: Streamlit
-- **ML Model**: XGBoost
-- **Validation**: Pydantic
+- **Database**: Supabase (optional)
 - **Testing**: Pytest
-- **Data**: Pandas, NumPy, Scikit-learn
 
----
+## 💾 Database Setup (Optional)
 
-## 🐛 Troubleshooting
+To enable transaction history and analytics:
 
-**Backend won't start:**
-- Ensure port 8000 is available
-- Check that model files exist in `artifacts/`
-- Run: `python backend_api.py` directly to see errors
-
-**Frontend can't connect:**
-- Make sure backend is running first
-- Check backend URL in `frontend_app.py` (default: localhost:8000)
-- Verify firewall settings
-
-**Model not found:**
-- Train the model using the pipeline scripts
-- Check `artifacts/` directory exists
-
----
+1. Create a Supabase account at [supabase.com](https://supabase.com)
+2. Create a new project
+3. Create a `.env` file:
+```env
+SUPABASE_URL=your_supabase_url
+SUPABASE_KEY=your_supabase_key
+```
+4. Run the SQL scripts in `database/` folder to create tables
+5. Restart the backend
 
 ## 👤 Author
 
 **Ganesh**  
 Email: tarigondaganesh1234@gmail.com
 
----
+## � License
 
-## 📝 Changelog
-
-### v2.0 (Current) - FastAPI + Streamlit
-- ✅ Modern FastAPI backend with auto-docs
-- ✅ Interactive Streamlit frontend
-- ✅ 3-tier decision logic (BLOCK/REVIEW/ALLOW)
-- ✅ Pydantic validation
-- ✅ Pre-loaded example transactions
-
-### v1.0 (Legacy) - Flask
-- Simple Flask API (moved to `legacy_backup/`)
+Educational and research purposes.
 
 ---
 
-## 📄 License
-
-This project is for educational and demonstration purposes.
-
----
-
-**🎉 Start detecting fraud in real-time with beautiful UI!**
-
-```bash
-# Terminal 1
-python backend_api.py
-
-# Terminal 2  
-streamlit run frontend_app.py
-
-# Open: http://localhost:8501
-```
+**Version 2.0** | Built with ❤️ using Machine Learning

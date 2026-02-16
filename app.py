@@ -194,7 +194,6 @@ default_values = examples.get(example_type, {})
 
 # Main form - Simplified with only essential features
 st.markdown("## 💳 Transaction Details")
-st.info("ℹ️ **Simplified Form** - Showing only essential fields. Advanced features are auto-calculated with smart defaults.")
 
 col1, col2 = st.columns(2)
 
@@ -570,6 +569,5 @@ st.markdown("---")
 st.markdown("""
 <div style='text-align: center; color: #666; padding: 2rem 0;'>
     <p>🛡️ Credit Card Fraud Detection System v2.0</p>
-    <p>Powered by XGBoost ML • FastAPI Backend • Streamlit Frontend • Supabase Cloud Database</p>
 </div>
 """, unsafe_allow_html=True)
